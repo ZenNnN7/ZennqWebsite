@@ -4,21 +4,19 @@ const axios = require("axios");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 8005;
 const startTime = Date.now();
 
-// Koneksi Database
+// Menggunakan POSTGRES_URL sesuai yang ada di foto Environment Variables kamu
 const pool = createPool({
   connectionString: process.env.POSTGRES_URL,
   allowExitOnIdle: true
 });
 
-// Middleware - Pastikan JSON diproses dengan benar
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Setup Tabel
+// Setup Tabel Otomatis
 async function initDb() {
     try {
         await pool.sql`
@@ -28,88 +26,71 @@ async function initDb() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `;
-        console.log("✔️ Database Ready");
+        console.log("Database Neon Ready");
     } catch (e) {
-        console.error("❌ DB Init Error:", e.message);
+        console.error("Gagal koneksi database:", e.message);
     }
 }
 initDb();
 
-// --- API ROUTES ---
-
-// Ambil List
+// 1. Ambil List Link (Penyebab Archive Empty)
 app.get("/api/links", async (req, res) => {
     try {
-        const { rows } = await pool.sql`SELECT id, data FROM zenn_links ORDER BY id DESC;`;
-        const results = rows.map(r => ({ ...r.data, db_id: r.id }));
-        res.json(results);
+        const { rows } = await pool.sql`SELECT data FROM zenn_links ORDER BY id DESC;`;
+        res.json(rows.map(r => r.data));
     } catch (e) {
-        console.error("❌ Fetch Error:", e.message);
         res.json([]);
     }
 });
 
-// Simpan Link
+// 2. Simpan Link
 app.post("/api/links", async (req, res) => {
-    console.log("📥 Incoming Upload:", req.body);
     try {
         const linkData = JSON.stringify(req.body);
         await pool.sql`INSERT INTO zenn_links (data) VALUES (${linkData});`;
-        console.log("✅ Berhasil Simpan");
         res.json({ success: true });
     } catch (e) {
-        console.error("❌ Save Error:", e.message);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: "Gagal simpan ke DB" });
     }
 });
 
-// Hapus Link (Gue tambahin Log Detail di sini)
-app.post("/api/links/delete", async (req, res) => {
-    console.log("🗑️ Request Hapus Masuk:", req.body);
-    const { db_id, key } = req.body;
-
-    if (key !== "ZennqDev") {
-        console.log("🚫 Hapus Ditolak: Key Salah");
-        return res.status(403).json({ error: "Key Salah" });
-    }
-
-    if (!db_id) {
-        console.log("⚠️ Hapus Gagal: db_id Kosong");
-        return res.status(400).json({ error: "db_id diperlukan" });
-    }
-
-    try {
-        const result = await pool.sql`DELETE FROM zenn_links WHERE id = ${db_id};`;
-        console.log(`♻️ Hasil Hapus: ${result.rowCount} baris terhapus`);
-        
-        // Ambil data terbaru buat update tampilan otomatis
-        const { rows } = await pool.sql`SELECT id, data FROM zenn_links ORDER BY id DESC;`;
-        const updatedList = rows.map(r => ({ ...r.data, db_id: r.id }));
-        
-        res.json({ success: true, newList: updatedList });
-    } catch (e) {
-        console.error("❌ Delete Error:", e.message);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// TikTok API
+// 3. API TikTok TikWM
 app.get("/api/tiktok", async (req, res) => {
+    const videoUrl = req.query.url;
+    if (!videoUrl) return res.status(400).json({ error: "URL required" });
+    
     try {
-        const response = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(req.query.url)}`);
+        const response = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}`);
         res.json(response.data);
-    } catch (e) {
-        res.status(500).json({ error: "TikTok Error" });
+    } catch (error) {
+        res.status(500).json({ error: "TikTok API Error" });
     }
 });
 
-// Status
-app.get("/api/status", (req, res) => {
-    res.json({ status: "ONLINE", uptime: `${Math.floor((Date.now() - startTime) / 1000)}s` });
+// 4. Hapus Link
+app.post("/api/links/delete", async (req, res) => {
+    const { index, key } = req.body;
+    if (key !== "ZennqDev") return res.status(403).json({ error: "Denied" });
+    
+    try {
+        const { rows } = await pool.sql`SELECT id FROM zenn_links ORDER BY id DESC;`;
+        if (rows[index]) {
+            const targetId = rows[index].id;
+            await pool.sql`DELETE FROM zenn_links WHERE id = ${targetId};`;
+        }
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Gagal hapus" });
+    }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server jalan di port ${PORT}`);
+// 5. Server Status
+app.get("/api/status", (req, res) => {
+    res.json({ 
+        status: "ONLINE", 
+        database: "NEON_POSTGRES",
+        uptime: `${Math.floor((Date.now() - startTime) / 1000)}s`
+    });
 });
 
 module.exports = app;
