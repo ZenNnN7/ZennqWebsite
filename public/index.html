@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Zennq System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+
+    body{
+      background:url('background.jpg') no-repeat center center/cover;
+      color:white; overflow-x:hidden; min-height: 100vh;
+    }
+
+    /* GRID ANIMATION */
+    body::before{
+      content:"";position:fixed;inset:0;width:200%;height:200%;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.02), transparent 40px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.02), transparent 40px);
+      animation:gridMove 20s linear infinite;
+    }
+    @keyframes gridMove{from{transform:translate(0,0);}to{transform:translate(-200px,-200px);}}
+
+    .overlay{
+      position:relative;width:100%;min-height:100vh;background:rgba(0,0,0,0.6);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1;
+    }
+
+    /* MINI MENU BUTTON */
+    .menu-trigger {
+      position: fixed; top: 20px; left: 20px; z-index: 1000;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+      backdrop-filter: blur(5px); transition: 0.3s; font-size: 11px;
+    }
+
+    /* PANEL UTAMA DENGAN EFEK RGB */
+    .panel {
+      width:90%; max-width:440px; padding:35px 20px; border-radius:30px;
+      text-align:center; backdrop-filter:blur(25px);
+      background: rgba(255,255,255,0.03);
+      border: 2px solid transparent;
+      animation: rgbGlow 8s linear infinite;
+    }
+
+    @keyframes rgbGlow {
+      0% { border-color: #ff0000; box-shadow: 0 0 20px rgba(255,0,0,0.4); }
+      25% { border-color: #00ff00; box-shadow: 0 0 20px rgba(0,255,0,0.4); }
+      50% { border-color: #0000ff; box-shadow: 0 0 20px rgba(0,0,255,0.4); }
+      75% { border-color: #ffff00; box-shadow: 0 0 20px rgba(255,255,0,0.4); }
+      100% { border-color: #ff0000; box-shadow: 0 0 20px rgba(255,0,0,0.4); }
+    }
+
+    .title{font-size:36px;margin-bottom:20px;letter-spacing:1px;text-shadow:0 0 15px white;}
+    .field{font-size:18px; margin:8px 0; color: rgba(255,255,255,0.9);}
+
+    /* SECTIONS */
+    .section { display: none; }
+    .section.active { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from{opacity:0; transform:scale(0.95);} to{opacity:1; transform:scale(1);} }
+
+    /* MENU TEXT SELECTION */
+    .menu-list { display: flex; flex-direction: column; gap: 30px; margin-top: 20px; }
+    .opt-text {
+      font-size: 24px; font-weight: bold; cursor: pointer; transition: 0.3s;
+      color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px;
+    }
+    .opt-text:hover { color: white; text-shadow: 0 0 15px white; transform: scale(1.1); }
+
+    /* FORM & BUTTONS */
+    input, textarea {
+      width: 90%; padding: 12px; margin-top: 15px; border-radius: 12px;
+      border: none; background: rgba(255,255,255,0.95);
+      color: black; text-align: center; outline: none; font-size: 14px;
+    }
+
+    .btn-group { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+
+    .btn {
+      padding: 12px 20px; border-radius: 15px; border: none;
+      background: rgba(255,255,255,0.1); color: white; cursor: pointer;
+      transition: 0.3s; font-size: 14px; min-width: 105px;
+      backdrop-filter: blur(5px);
+    }
+    .btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-2px); }
+
+    /* ARCHIVE CARDS (PANEL TERPISAH) */
+    .archive-card {
+      background: rgba(255,255,255,0.05); padding: 15px; border-radius: 20px;
+      margin-top: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: left;
+    }
+    .archive-card img { width: 100%; border-radius: 12px; margin-bottom: 10px; }
+    .archive-card h3 { color: cyan; margin-bottom: 5px; font-size: 18px; }
+
+    #loader { display: none; margin: 15px; font-weight: bold; animation: textRgb 2s linear infinite; }
+    @keyframes textRgb {
+      0% { color: #ff0000; } 33% { color: #00ff00; } 66% { color: #0000ff; } 100% { color: #ff0000; }
+    }
+    video { width: 100%; border-radius: 15px; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+<button class="menu-trigger" onclick="changePage('nav')">MENU</button>
+
+<div class="overlay">
+  <div class="panel">
+
+    <div id="nav" class="section">
+      <div class="title">𝕾𝖄𝕾𝕿𝕰𝕸</div>
+      <div class="menu-list">
+        <div class="opt-text" onclick="changePage('dash')">. Dashboard</div>
+        <div class="opt-text" onclick="changePage('upload')">. Upload Link</div>
+        <div class="opt-text" onclick="changePage('list')">. List Link</div>
+      </div>
+    </div>
+
+    <div id="dash" class="section active">
+      <div class="title">𝕯𝖆𝖘𝖍𝖇𝖔𝖆𝖗𝖉 𝖅𝖊𝖓𝖓</div>
+      <div class="field">Status: <span id="status">ONLINE</span></div>
+      <div class="field">Waktu aktif: <span id="uptime">0</span></div>
+      <div class="field">Pemilik: 𝖅𝖊𝖓𝖓</div>
+
+      <input id="ttlink" placeholder="Tempel tautan disini">
+
+      <div class="btn-group">
+        <button class="btn" onclick="downloadTT()">TikTok</button>
+        <button class="btn" onclick="alert('Gagal ambil YouTube')">YouTube</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn" onclick="alert('Coming Soon')">Instagram</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn" style="width: 70%;" onclick="downloadTT()">Unduh Video</button>
+      </div>
+
+      <div id="loader">MEMUAT DATA...</div>
+
+      <div class="btn-group">
+        <a class="btn" href="https://discord.com/users/1259852674757824584" target="_blank">Pemilik</a>
+        <a class="btn" href="#">Mengundang</a>
+      </div>
+      <div class="btn-group">
+        <button class="btn" onclick="playAudio()">Bermain</button>
+        <button class="btn" onclick="stopAudio()">Berhenti</button>
+      </div>
+
+      <div id="previewBox" style="display:none;">
+        <video id="videoPreview" controls></video>
+        <a id="downloadBtn" class="btn" style="display:block; margin-top:10px; background:white; color:black;" target="_blank">Simpan</a>
+      </div>
+    </div>
+
+    <div id="upload" class="section">
+      <div class="title">𝖀𝕻𝕷𝕺𝕬𝕯</div>
+      <input id="up-url" placeholder="Enter Link">
+      <input id="up-img" placeholder="Enter Foto URL">
+      <input id="up-title" placeholder="Enter Judul">
+      <textarea id="up-desc" placeholder="Enter Deskripsi" rows="3" style="width:90%; border-radius:12px; margin-top:15px; padding:10px; border:none;"></textarea>
+      <button class="btn" style="width: 90%; margin-top: 20px; background: rgba(255,255,255,0.2);" onclick="saveLink()">UPLOAD</button>
+    </div>
+
+    <div id="list" class="section">
+      <div class="title">𝕬𝕽𝕮𝕳𝕴𝖁𝕰</div>
+      <div id="archive-container" style="max-height: 400px; overflow-y: auto; padding: 10px;">
+        </div>
+      <button class="btn" style="margin-top: 20px;" onclick="changePage('dash')">BACK</button>
+    </div>
+
+  </div>
+</div>
+
+<audio id="audio"><source src="audio.mp3" type="audio/mpeg"></audio>
+<script src="script.js"></script>
+</body>
+</html>
