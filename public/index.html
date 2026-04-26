@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ZennqBot Dashboard</title>
+
+  <!-- 🔥 FIX MOBILE VIEWPORT -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <style>
+    * {
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:sans-serif;
+    }
+
+    html, body {
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      background:black;
+    }
+
+    /* 🔥 BACKGROUND FULL FIX (ANTI PUTIH HP) */
+    body {
+      position: fixed;
+      inset: 0;
+      background: url('background.jpg') no-repeat center center;
+      background-size: cover;
+      color:white;
+    }
+
+    /* CYBER GRID TIPIS */
+    body::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      width:200%;
+      height:200%;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, transparent 40px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, transparent 40px);
+      animation: move 20s linear infinite;
+      z-index:0;
+    }
+
+    @keyframes move {
+      from { transform: translate(0,0); }
+      to { transform: translate(-200px,-200px); }
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+
+      padding: env(safe-area-inset-top) 
+               env(safe-area-inset-right) 
+               env(safe-area-inset-bottom) 
+               env(safe-area-inset-left);
+
+      z-index:1;
+    }
+
+    .panel {
+      width:90%;
+      max-width:900px;
+      padding:40px;
+      border-radius:20px;
+      text-align:center;
+      backdrop-filter: blur(10px);
+
+      animation: rgbGlow 6s infinite alternate;
+    }
+
+    @keyframes rgbGlow {
+      0% { box-shadow:0 0 20px red; }
+      25% { box-shadow:0 0 20px blue; }
+      50% { box-shadow:0 0 20px purple; }
+      75% { box-shadow:0 0 20px cyan; }
+      100% { box-shadow:0 0 20px lime; }
+    }
+
+    .title {
+      font-size:42px;
+      margin-bottom:20px;
+      animation: rgbText 5s infinite alternate;
+    }
+
+    @keyframes rgbText {
+      0% { text-shadow:0 0 10px red; }
+      25% { text-shadow:0 0 10px blue; }
+      50% { text-shadow:0 0 10px purple; }
+      75% { text-shadow:0 0 10px cyan; }
+      100% { text-shadow:0 0 10px lime; }
+    }
+
+    .field {
+      font-size:20px;
+      margin:10px 0;
+    }
+
+    input {
+      margin-top:15px;
+      padding:10px;
+      width:80%;
+      border-radius:10px;
+      border:none;
+      text-align:center;
+    }
+
+    .buttons {
+      margin-top:20px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    .btn {
+      padding:12px 20px;
+      border-radius:10px;
+      border:none;
+      cursor:pointer;
+      background:rgba(255,255,255,0.1);
+      color:white;
+      transition:0.3s;
+    }
+
+    .btn:hover {
+      transform:scale(1.1);
+      box-shadow:0 0 20px white;
+    }
+
+    .preview {
+      margin-top:20px;
+      width:90%;
+      max-width:900px;
+      display:none;
+      text-align:center;
+    }
+
+    video {
+      width:100%;
+      border-radius:15px;
+      margin-top:10px;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="overlay">
+
+  <div class="panel">
+    <div class="title">𝕯𝖆𝖘𝖍𝖇𝖔𝖆𝖗𝖉 𝓩𝖊𝖓𝖓</div>
+
+    <div class="field">Status: <span id="status">Loading...</span></div>
+    <div class="field">Uptime: <span id="uptime">0</span>s</div>
+    <div class="field">Owner: 𝓩𝖊𝖓𝖓</div>
+
+    <input id="ttlink" placeholder="Paste link TikTok disini">
+
+    <div class="buttons">
+      <button class="btn" onclick="downloadTT()">Download TikTok</button>
+    </div>
+
+    <div class="buttons">
+      <a class="btn" href="https://discord.com/users/1259852674757824584" target="_blank">Owner</a>
+      <a class="btn" href="https://discord.com/oauth2/authorize?client_id=1469601350441635852" target="_blank">Invite</a>
+      <button class="btn" onclick="playAudio()">Play</button>
+      <button class="btn" onclick="stopAudio()">Stop</button>
+    </div>
+  </div>
+
+  <div class="preview" id="previewBox">
+    <h2>Preview Video</h2>
+    <video id="videoPreview" controls></video>
+
+    <div class="buttons">
+      <a id="downloadBtn" class="btn" target="_blank">Download Video</a>
+    </div>
+  </div>
+
+</div>
+
+<audio id="audio">
+  <source src="audio.mp3" type="audio/mpeg">
+</audio>
+
+<script src="script.js"></script>
+
+</body>
+  </html>
