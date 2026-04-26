@@ -3,6 +3,7 @@ const KEY_OWNER = "ZennqDev";
 function changePage(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   if(document.getElementById(id)) document.getElementById(id).classList.add('active');
+  if(id === 'list') renderList(); // Pastikan list refresh tiap dibuka
 }
 
 async function updateStatus() {
@@ -10,13 +11,12 @@ async function updateStatus() {
     const res = await fetch("/api/status");
     const data = await res.json();
     document.getElementById("status").innerText = data.status;
-    document.getElementById("uptime").innerText = data.uptime;
+    document.getElementById("uptime").innerText = data.uptime + "s";
   } catch { document.getElementById("status").innerText = "OFFLINE"; }
 }
 setInterval(updateStatus, 3000);
 updateStatus();
 
-// AUDIO & TIKTOK (Tetap Sama)
 const audio = document.getElementById("audio");
 function playAudio() { audio.play().catch(() => {}); }
 function stopAudio() { audio.pause(); audio.currentTime = 0; }
@@ -33,7 +33,90 @@ async function downloadTT() {
   }
 }
 
-// SAVE KE SERVER (GLOBAL)
+// SAVE KE SERVER (FIX: Langsung render tanpa mulai ulang)
+async function saveLink() {
+  const url = document.getElementById("up-url").value;
+  const fileInput = document.getElementById("up-file");
+  const title = document.getElementById("up-title").value;
+  const desc = document.getElementById("up-desc").value;
+
+  if(!url || !title) return alert("Link & Title required!");
+
+  let img = "";
+  if (fileInput.files[0]) {
+    img = await new Promise(r => {
+      const reader = new FileReader();
+      reader.readAsDataURL(fileInput.files[0]);
+      reader.onload = () => r(reader.result);
+    });
+  }
+
+  const payload = { url, img, title, desc };
+
+  const res = await fetch("/api/links", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    alert("Data Committed Globally!");
+    // Kosongkan form
+    document.getElementById("up-url").value = "";
+    document.getElementById("up-title").value = "";
+    document.getElementById("up-desc").value = "";
+    document.getElementById("up-file").value = "";
+    
+    await renderList(); // Tunggu render selesai
+    changePage('list');
+  }
+}
+
+// DELETE DARI SERVER (FIX: Pake db_id biar gak random)
+async function deleteLink(db_id) {
+  const key = prompt("Enter Owner Key:");
+  if (key === KEY_OWNER) {
+    const res = await fetch("/api/links/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ db_id, key }) // Kirim db_id, bukan index
+    });
+    if (res.ok) {
+      await renderList();
+      alert("Deleted from Server.");
+    }
+  } else if (key !== null) { alert("Access Denied!"); }
+}
+
+// RENDER LIST (FIX: No Random)
+async function renderList() {
+  const container = document.getElementById("archive-container");
+  container.innerHTML = "<p>Loading...</p>";
+  
+  try {
+    const res = await fetch("/api/links");
+    const db = await res.json();
+    
+    container.innerHTML = db.length ? "" : "<p style='color:gray;'>Archive Empty.</p>";
+
+    // Backend sudah kirim data terbaru di atas (ORDER BY id DESC), 
+    // jadi GAK PERLU pake .reverse() lagi biar indexnya gak kacau.
+    db.forEach((item) => {
+      container.innerHTML += `
+        <div class="archive-card">
+          <button class="btn-del" onclick="deleteLink(${item.db_id})">X</button>
+          ${item.img ? `<img src="${item.img}">` : ''}
+          <h3 style="color:cyan;">${item.title}</h3>
+          <p style="font-size:12px; color:#bbb; margin-bottom:10px;">${item.desc}</p>
+          <a href="${item.url}" target="_blank" class="btn" style="display:block; text-align:center; text-decoration:none; color: cyan; border: 1px solid cyan;">DOWNLOAD</a>
+        </div>`;
+    });
+  } catch (e) {
+    container.innerHTML = "<p>Gagal memuat data.</p>";
+  }
+}
+
+renderList();
 async function saveLink() {
   const url = document.getElementById("up-url").value;
   const fileInput = document.getElementById("up-file");
