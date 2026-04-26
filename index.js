@@ -9,16 +9,22 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Kode ini akan otomatis mencoba kedua nama variabel (yang lama atau yang baru kamu ketik)
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.URL_REST_REDIS_UPSTASH;
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+// Cek semua kemungkinan nama variabel yang kamu buat di Vercel
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.URL_REST_REDIS_UPSTASH || process.env.URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.TOKEN;
 
 async function redisAction(command, key, value = null) {
-    if (!UPSTASH_URL || !UPSTASH_TOKEN) return null;
+    if (!UPSTASH_URL || !UPSTASH_TOKEN) {
+        console.error("Variabel Vercel belum terbaca!");
+        return null;
+    }
     
-    const url = `${UPSTASH_URL}/${command}/${key}`;
+    // Pastikan URL tidak diakhiri tanda miring /
+    const cleanUrl = UPSTASH_URL.replace(/\/$/, "");
+    const url = `${cleanUrl}/${command}/${key}`;
+    
     const config = { 
-        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } 
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN.trim()}` } 
     };
 
     try {
@@ -41,8 +47,8 @@ app.get("/api/status", (req, res) => {
 
 app.get("/api/links", async (req, res) => {
     try {
+        // Kita coba ambil dari key 'ZennqDb' sesuai gambar Upstash kamu
         const raw = await redisAction('get', 'ZennqDb');
-        // Abaikan jika isinya cuma teks bawaan "nilai" atau "value"
         if (!raw || raw === "value" || raw === "nilai") return res.json([]);
         const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
         res.json(Array.isArray(parsed) ? parsed : []);
@@ -80,17 +86,6 @@ app.post("/api/links/delete", async (req, res) => {
         }
         res.json({ success: true });
     } catch (e) {
-        res.status(500).json({ error: "Error" });
-    }
-});
-
-app.get("/api/tiktok", async (req, res) => {
-    const videoUrl = req.query.url;
-    if (!videoUrl) return res.status(400).json({ error: "No URL" });
-    try {
-        const response = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}`);
-        res.json(response.data);
-    } catch (error) {
         res.status(500).json({ error: "Error" });
     }
 });
