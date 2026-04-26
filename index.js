@@ -3,8 +3,6 @@ const axios = require("axios");
 const path = require("path");
 
 const app = express();
-
-// Catat waktu mulai server untuk hitung Runtime (Detik)
 const startTime = Date.now();
 
 app.use(express.json({ limit: '50mb' }));
@@ -14,29 +12,27 @@ app.use(express.static(path.join(__dirname, "public")));
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// Fungsi komunikasi ke Upstash
-async function redisAction(method, key, value = null) {
+// Fungsi Akses Database (Key disesuaikan dengan gambar kamu: ZennqDb)
+async function redisAction(command, key, value = null) {
+    const url = `${UPSTASH_URL}/${command}/${key}`;
     const config = { 
-        headers: { 
-            Authorization: `Bearer ${UPSTASH_TOKEN}`,
-            "Content-Type": "application/json"
-        } 
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } 
     };
+
     try {
-        if (method === 'get') {
-            const res = await axios.get(`${UPSTASH_URL}/get/${key}`, config);
+        if (command === 'get') {
+            const res = await axios.get(url, config);
             return res.data.result;
         } else {
-            const res = await axios.post(`${UPSTASH_URL}/set/${key}`, JSON.stringify(value), config);
+            const res = await axios.post(url, JSON.stringify(value), config);
             return res.data.result;
         }
     } catch (e) {
-        console.error("Redis Error:", e.message);
         return null;
     }
 }
 
-// Status & Runtime (Detik kembali normal)
+// Status & Runtime (Fix Detik)
 app.get("/api/status", (req, res) => {
     const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
     res.json({ 
@@ -45,68 +41,62 @@ app.get("/api/status", (req, res) => {
     });
 });
 
-// Ambil List Links
+// Ambil List
 app.get("/api/links", async (req, res) => {
     try {
-        const raw = await redisAction('get', 'zenn_data');
-        if (!raw) return res.json([]); // Jika kosong, kirim array kosong
-        res.json(JSON.parse(raw));
+        const raw = await redisAction('get', 'ZennqDb');
+        if (!raw || raw === "value") return res.json([]); 
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        res.json(Array.isArray(parsed) ? parsed : []);
     } catch (e) {
         res.json([]);
     }
 });
 
-// Simpan Link Baru
+// Simpan Data
 app.post("/api/links", async (req, res) => {
     try {
-        const raw = await redisAction('get', 'zenn_data');
+        const raw = await redisAction('get', 'ZennqDb');
         let data = [];
-        
-        // Cek jika sudah ada data sebelumnya
-        if (raw) {
-            try {
-                data = JSON.parse(raw);
-            } catch (e) {
-                data = [];
-            }
+        if (raw && raw !== "value") {
+            data = typeof raw === 'string' ? JSON.parse(raw) : raw;
         }
+        if (!Array.isArray(data)) data = [];
         
         data.push(req.body);
-        await redisAction('set', 'zenn_data', data);
+        await redisAction('set', 'ZennqDb', data);
         res.json({ success: true });
     } catch (e) {
-        res.status(500).json({ error: "Gagal menyimpan data" });
+        res.status(500).json({ error: "Gagal simpan" });
     }
 });
 
-// Hapus Link (Owner Only)
+// Hapus Link
 app.post("/api/links/delete", async (req, res) => {
     const { index, key } = req.body;
-    if (key !== "ZennqDev") return res.status(403).json({ error: "Akses Ditolak" });
+    if (key !== "ZennqDev") return res.status(403).json({ error: "Denied" });
     try {
-        const raw = await redisAction('get', 'zenn_data');
-        if (!raw) return res.json({ success: true });
-        
-        let data = JSON.parse(raw);
-        // Hapus berdasarkan urutan tampilan (reverse)
-        data.splice(data.length - 1 - index, 1);
-        
-        await redisAction('set', 'zenn_data', data);
+        const raw = await redisAction('get', 'ZennqDb');
+        let data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(data)) {
+            data.splice(data.length - 1 - index, 1);
+            await redisAction('set', 'ZennqDb', data);
+        }
         res.json({ success: true });
     } catch (e) {
-        res.status(500).json({ error: "Gagal menghapus" });
+        res.status(500).json({ error: "Error" });
     }
 });
 
-// TikTok Downloader Proxy
+// TikTok API
 app.get("/api/tiktok", async (req, res) => {
     const videoUrl = req.query.url;
-    if (!videoUrl) return res.status(400).json({ error: "URL diperlukan" });
+    if (!videoUrl) return res.status(400).json({ error: "No URL" });
     try {
         const response = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(videoUrl)}`);
         res.json(response.data);
     } catch (error) {
-        res.status(500).json({ error: "Server TikTok sibuk" });
+        res.status(500).json({ error: "Error" });
     }
 });
 
