@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Zennq System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Courier New', Courier, monospace;}
+
+    body{
+      background:url('background.jpg') no-repeat center center/cover;
+      color:white; overflow-x:hidden; min-height:100vh;
+    }
+
+    /* GRID BACKGROUND */
+    body::before{
+      content:""; position:fixed; inset:0; width:200%; height:200%;
+      background: 
+        repeating-linear-gradient(0deg, rgba(0,255,255,0.03) 0px, transparent 1px, transparent 40px),
+        repeating-linear-gradient(90deg, rgba(0,255,255,0.03) 0px, transparent 1px, transparent 40px);
+      animation:move 20s linear infinite; z-index: -1;
+    }
+    @keyframes move{from{transform:translate(0,0);} to{transform:translate(-40px,-40px);}}
+
+    .overlay{
+      width:100%; min-height:100vh; background:rgba(0,0,0,0.7);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:20px;
+    }
+
+    /* TOMBOL MENU MINI */
+    .tiny-btn {
+      position: fixed; top: 15px; left: 15px; z-index: 1000;
+      width: 30px; height: 30px; border: 1px solid cyan;
+      background: rgba(0,0,0,0.5); color: cyan; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 5px; backdrop-filter: blur(5px);
+    }
+
+    /* PANEL TRANSPARAN (AI STYLE) */
+    .panel {
+      width: 100%; max-width: 500px; padding: 30px; border-radius: 10px;
+      background: rgba(255,255,255,0.02); backdrop-filter: blur(15px);
+      border: 1px solid rgba(0,255,255,0.1); text-align: center;
+      display: none; animation: fadeIn 0.5s ease;
+    }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from{opacity:0; transform:scale(0.9);} to{opacity:1; transform:scale(1);} }
+
+    .title { font-size: 28px; letter-spacing: 8px; margin-bottom: 30px; color: cyan; text-shadow: 0 0 10px cyan; }
+
+    /* MENU TEXT SELECTION */
+    .menu-wrap { display: flex; flex-direction: column; gap: 25px; }
+    .opt-text {
+      font-size: 20px; color: rgba(255,255,255,0.5); cursor: pointer;
+      transition: 0.3s; text-transform: uppercase;
+    }
+    .opt-text:hover { color: cyan; text-shadow: 0 0 15px cyan; letter-spacing: 4px; }
+
+    /* FORM STYLE */
+    input, textarea {
+      width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px;
+      border: 1px solid rgba(0,255,255,0.2); background: rgba(0,0,0,0.4);
+      color: white; text-align: center; outline: none;
+    }
+    .btn {
+      margin-top: 15px; padding: 10px 20px; border: 1px solid cyan;
+      background: rgba(0,255,255,0.1); color: cyan; cursor: pointer;
+      width: 100%; font-weight: bold; transition: 0.3s;
+    }
+    .btn:hover { background: cyan; color: black; box-shadow: 0 0 20px cyan; }
+
+    /* ARCHIVE CARDS */
+    .archive-item {
+      background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;
+      margin-top: 15px; border-left: 3px solid cyan; text-align: left;
+    }
+    .archive-item img { width: 100%; border-radius: 5px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); }
+    .archive-item h3 { color: cyan; margin-bottom: 5px; }
+    .archive-item p { font-size: 13px; color: #ccc; margin-bottom: 10px; }
+
+    #status-bar { font-size: 12px; color: cyan; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<button class="tiny-btn" onclick="openMenu()">☰</button>
+
+<div class="overlay">
+
+  <div id="menu-panel" class="panel active">
+    <div class="title">𝖅𝕰𝕽𝕺 𝕾𝖄𝕾𝕿𝕰𝕸</div>
+    <div class="menu-wrap">
+      <div class="opt-text" onclick="showSection('dash-panel')">[ 01. DASHBOARD ]</div>
+      <div class="opt-text" onclick="showSection('upload-panel')">[ 02. UPLOAD DATA ]</div>
+      <div class="opt-text" onclick="showSection('archive-panel')">[ 03. ARCHIVE ]</div>
+    </div>
+  </div>
+
+  <div id="dash-panel" class="panel">
+    <div class="title">𝕯𝕬𝕾𝕳𝕭𝕺𝕬𝕽𝕯</div>
+    <div id="status-bar">STATUS: <span id="status">...</span> | UPTIME: <span id="uptime">0</span>s</div>
+    <input id="ttlink" placeholder="INPUT TIKTOK URL">
+    <button class="btn" onclick="downloadTT()">EXECUTE</button>
+    <div id="previewBox" style="display:none; margin-top:15px;">
+        <video id="videoPreview" style="width:100%; border-radius:5px;" controls></video>
+        <a id="downloadBtn" class="btn" style="display:block; text-decoration:none;" target="_blank">SAVE VIDEO</a>
+    </div>
+  </div>
+
+  <div id="upload-panel" class="panel">
+    <div class="title">𝖀𝕻𝕷𝕺𝕬𝕯</div>
+    <input id="up-img" placeholder="IMAGE URL (THUMBNAIL)">
+    <input id="up-title" placeholder="ENTRY TITLE">
+    <textarea id="up-desc" placeholder="DESCRIPTION" rows="3"></textarea>
+    <input id="up-url" placeholder="DESTINATION LINK">
+    <button class="btn" onclick="saveToArchive()">COMMIT DATA</button>
+  </div>
+
+  <div id="archive-panel" class="panel">
+    <div class="title">𝕬𝕽𝕮𝕳𝕴𝖁𝕰</div>
+    <div id="archive-list">
+      </div>
+    <button class="btn" onclick="openMenu()" style="margin-top:20px;">BACK</button>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
